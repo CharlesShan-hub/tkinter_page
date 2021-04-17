@@ -44,6 +44,7 @@ window.mainloop()
 ![tkp DesktopFrame Demo](./picture/DesktopFrame_Demo.png)
 
 ### Page
+Page can be constructed by combobox style.
 ``` Python
 #This is a example 1 to build an Page. 
 #Using Combobox to flip.
@@ -101,3 +102,72 @@ page1.pack()
 window.mainloop()
 ```
 ![tkp Page Demo](./picture/Page_Demo1.png)
+
+This is another page example with tree style.
+``` Python
+#This is a example to build an Page. 
+#Using Buttom (or other components) to flip.
+
+import tkinter as tk
+import tkinter_page as tkp
+
+window = tk.Tk()
+
+base_frame = tk.Frame(window)
+# make pages like a tree and use components 
+# to flip. 
+#   father - 1 
+#          \   
+#           2 - 2.1
+#             \ 2.2
+# Be carefull! Tree like pages construct father first!
+# make father page
+father = tkp.Page(base_frame,show_child=False,flip="Tree")
+label0 = tk.Label(base_frame,text="Tree Flipway Page",\
+	width=20,height=2,font=('Times', '15', 'bold'))
+father.add_component(label0)
+
+# make page 1
+# Of course you can add page in this way, but this is 
+# STRONGLY NOT RECMMENDED! You can use page_connect 
+# function to connect father page and child page.
+page1 = tkp.Page(base_frame,flip="Tree")
+label1 = tk.Label(base_frame,text="page1",\
+	width=20,height=2,font=('Times', '15', 'bold'))
+page1.add_component(label1)
+page1.set_back(father)
+father.set_child_page(page1)
+def to_page1_func():
+	father.front = father.child_page[0]
+	father.pack_forget()
+	father.front.pack()
+to_page1 = tk.Button(base_frame,text='Page 1',command=to_page1_func)
+father.add_component(to_page1)
+
+# make page 2
+# Use page_connect method
+page2 = tkp.Page(base_frame,flip="Tree",back=father)
+label2 = tk.Label(base_frame,text="page2",\
+	width=20,height=2,font=('Times', '15', 'bold'))
+page2.add_component(label2)
+tkp.page_connect(base_frame,father=father,child=page2,page_number=1,text='Page 2')
+
+# make page 2.1
+page2_1 = tkp.Page(base_frame,flip="Tree",back=father)
+label2_1 = tk.Label(base_frame,text="page2_1",\
+	width=20,height=2,font=('Times', '15', 'bold'))
+page2_1.add_component(label2_1)
+tkp.page_connect(base_frame,father=page2,child=page2_1,page_number=0,text='Page 2_1')
+
+# make page 2.2
+page2_2 = tkp.Page(base_frame,flip="Tree",back=father)
+label2_2 = tk.Label(base_frame,text="page2_2",\
+	width=20,height=2,font=('Times', '15', 'bold'))
+page2_2.add_component(label2_2)
+tkp.page_connect(base_frame,father=page2,child=page2_2,page_number=1,text='Page 2_2')
+
+base_frame.pack(fill='both',expand=1)
+father.pack()
+
+window.mainloop()
+```

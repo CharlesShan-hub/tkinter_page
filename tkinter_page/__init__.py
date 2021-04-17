@@ -254,10 +254,25 @@ class SplitViewFrame():
 	——————————————————————————————————————————————————————————————
 	"""
 
+	log = False
+
 	def __init__(self, master=None, cnf={}, **kw):
 		""" Normally software application follows a master-to-detail navigation style.
 		"""
-		pass
+		# Get Setting
+		if "log" in kw:
+			self.set_log(kw['log'])
+
+	def set_log(self,log=False):
+		""" Set Parameter Log 
+		Args:
+			log (bool or int or None, optional): Whether 
+				to console out the running logs 
+		"""
+		if log:
+			self.log = True
+		else:
+			self.log = False
 
 
 class ComponentsList(list):
@@ -362,6 +377,18 @@ set_child_page - mode = "DELETE"
 set_child_page_name - mode = "DELETE"
 
 '''
+
+def page_connect(master,father, child, page_number, text):
+	""" Connect two pages with Tree type
+	"""
+	child.set_back(father)
+	father.set_child_page(child,place=len(father.child_page))
+	def to_child_func():
+		father.pack_forget()
+		father.child_page[page_number].pack()
+	to_child = tk.Button(master,text=text,command=to_child_func)
+	father.add_component(to_child)
+
 class Page():
 	"""
 	Pages like book
@@ -383,11 +410,18 @@ class Page():
 	if you pack branch 1.1, you also pack branch 1 and main at
 	the same time.
 	(See the example 1 for Combobox Flipway Page)
+
+	If use "Tree" type, the structure is not change, but this 
+	more like flip book operation - you would not see the last page
+	when you flip the next page.
+
+	Of cause, if flip == None, the page does not has a child page.
 	"""
 
 	log = False
 	flip = None
 	back = None
+	front = None
 	current = -1
 	show_child = False
 	pack_way = None
@@ -477,6 +511,9 @@ class Page():
 
 		elif flip == 'Tree' or (flip == None and self.flip=='Tree'):
 			self.flip = 'Tree'
+			if init == True:
+				self.flip_button = tk.Button(self.master,text='Back',command=self.back_func)
+				self.flip_title = tk.Label(self.master)
 
 		else:
 			raise ValueError("`flip` should be 'Combobox' or 'Tree'")
@@ -618,12 +655,21 @@ class Page():
 		if refresh:
 			self.set_flip()
 
-	def set_back(self,back_page):
+	def set_back(self,back):
 		""" Set back to page"""
-		if type(back_page) != Page:
+		if type(back) != Page:
 			raise ValueError("`back` should be Page")
 
-		self.back_page = back_page
+		self.back = back
+
+	def back_func(self):
+		""" Back function
+		"""
+		# clear child page
+		#self.destroy()
+		self.pack_forget()
+		# pack father page
+		self.back.pack()
 
 	def set_current(self,current):
 		""" Set Current"""
@@ -680,14 +726,21 @@ class Page():
 			self.pack_way()
 		# pack components
 		else:
-			for item in self.page_member:
-				item.pack()
-			if auto == True:
-				self.pack_combobox()
-
-		# pack child page
-		if (show_child or self.show_child) and self.current!=-1:
-			self.child_page[self.current].pack()
+			if self.flip == 'Combobox':
+				for item in self.page_member:
+					item.pack()
+				if auto == True:
+					self.pack_combobox()
+				# pack child page - only combobox
+				if (show_child or self.show_child) and self.current!=-1:
+					self.child_page[self.current].pack()
+			elif self.flip == 'Tree':
+				if auto == True:
+					self.pack_tree()
+				for item in self.page_member:
+					item.pack()
+			else:
+				raise ValueError("Unverified flipway")
 
 	def add_component(self,item):
 		""" Add Component
@@ -698,17 +751,27 @@ class Page():
 		if self.flip == "Combobox":
 			self.flip_combobox.pack()
 
+	def pack_tree(self):
+		if self.flip == 'Tree' and self.back!=None:
+			self.flip_button.pack()
+
 	def pack_forget(self):
 		for item in self.child_page:
 			item.pack_forget()
 		for item in self.page_member:
 			item.pack_forget()
+		if self.flip == 'Tree':
+			self.flip_button.pack_forget()
+			self.flip_title.pack_forget()
 
-	def destory(self):
+	def destroy(self):
 		for item in self.child_page:
-			item.destory()
+			item.destroy()
 		for item in self.page_member:
-			item.destory()
+			item.destroy()
+		if self.flip == 'Tree':
+			self.flip_button.destroy()
+			self.flip_title.destroy()
 		self.child_page.clear()
 		self.page_member.clear()
 
