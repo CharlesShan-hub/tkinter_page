@@ -12,7 +12,7 @@ setuptools.setup(
   long_description=long_description,
   long_description_content_type="text/markdown",
   packages=setuptools.find_packages(),
-  #url="https://github.com/pypa/pds",
+  url="https://github.com/CharlesShan-hub/tkinter_page",
   classifiers=[
   "Programming Language :: Python :: 3",
   "License :: OSI Approved :: MIT License",
@@ -31,7 +31,6 @@ setuptools.setup(
 # 测试软件包
 # python3 -m pip install --index-url https://test.pypi.org/simple/ --no-deps iiapds
 # python3 -m pip install --index-url https://pypi.org/simple/ --no-deps iiapds
-
 
 
 
