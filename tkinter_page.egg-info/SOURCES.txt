@@ -1,0 +1,7 @@
+README.md
+setup.py
+tkinter_page/__init__.py
+tkinter_page.egg-info/PKG-INFO
+tkinter_page.egg-info/SOURCES.txt
+tkinter_page.egg-info/dependency_links.txt
+tkinter_page.egg-info/top_level.txt
