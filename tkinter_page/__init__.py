@@ -275,20 +275,67 @@ class SplitViewFrame():
 			self.log = False
 
 
-class ComponentsList(list):
+class ScrollCanvas():
 	"""
 	"""
-	def __init__(self, master=None, cnf={}, **kw):
-		pass
+	def __init__(self, window,*args, vsb='y',**kwargs):
+		""" 初始化带滚动条的组件
+		参数说明:
+			vsb: 'y',y方向滚动条; 'x',x方向滚动条; 'both',两个方向滚动条
+		"""
+		# 设置与主窗口
+		self.sd = args[0]
+		self.cd = args[1]
+		self.window = window
+		self.vsb = vsb
+		# 创建控件
+		self.canvas = tk.Canvas(self.window, borderwidth=0, background=self.cd['back'])          # 画布
+		self.frame = tk.Frame(self.canvas, background=self.cd['back'])                           # 画布上的框架
+		if self.vsb=='y' or self.vsb=='both':
+			self.vsb1 = tk.Scrollbar(self.window, orient="vertical", command=self.canvas.yview)   # 竖向滚动条
+			self.canvas.configure(yscrollcommand=self.vsb1.set)
+		if self.vsb=='x' or self.vsb=='both':
+			self.vsb2 = tk.Scrollbar(self.window, orient="horizontal", command=self.canvas.xview) # 横向滚动条
+			self.canvas.configure(xscrollcommand=self.vsb2.set)
+		
+	def _onFrameConfigure(self):
+	    '''Reset the scroll region to encompass the inner frame'''
+	    self.canvas.configure(scrollregion=self.canvas.bbox("all"))
 
-	def pack():
-		pass
+	def fill_test(self):
+		""" 测试填充效果 """
+		for row in range(30):
+			items = [['Normal Info','DataBase Info','Remind Info'],\
+				['普通信息','数据库信息','提示信息']]
+			test_label = FunctionalBlock(self.frame,['Info Type','信息类型'],\
+				self.sd,self.cd,items=items[self.sd['language_id']],reduce_=2)
+			test_label.pack()
 
-	def pack_forget():
-		pass
+	def pack(self):
+		""" 安放控件 """ 
+		self.canvas.pack(side="right", fill="both", expand=True)
+		if self.vsb=='x' or self.vsb=='both':
+			self.vsb2.pack(side='top',fill="x")
+		if self.vsb=='y' or self.vsb=='both':
+			self.vsb1.pack(side="right", fill="y")
+		self.canvas.create_window((0,0),window=self.frame, anchor="nw")
+		self.frame.bind("<Configure>", lambda event, canvas=self.canvas: self._onFrameConfigure())
 
-	def destory():
-		pass
+	def pack_forget(self):
+		""" 隐藏控件 """
+		self.canvas.pack_forget()
+		if self.vsb=='x' or self.vsb=='both':
+			self.vsb2.pack_forget()
+		if self.vsb=='y' or self.vsb=='both':
+			self.vsb1.pack_forget()
+
+	def destroy(self):
+		""" 摧毁控件 """
+		self.canvas.destroy()
+		if self.vsb=='x' or self.vsb=='both':
+			self.vsb2.destroy()
+		if self.vsb=='y' or self.vsb=='both':
+			self.vsb1.destroy()
 
 
 class FunctionalBlock():
@@ -371,23 +418,54 @@ class FunctionalBlock():
 	'''
 
 
-'''
-To be contiuned:
-set_child_page - mode = "DELETE"
-set_child_page_name - mode = "DELETE"
-
-'''
-
-def page_connect(master,father, child, page_number, text):
+def page_connect(father, child, page_number,text,master=None,widget=None,flavor=None,command=None):
 	""" Connect two pages with Tree type
 	"""
+	# validation
+	if type(flavor) != dict and flavor!=None:
+		print(flavor)
+
+		raise ValueError("`flavor` should be 'dict'")
+	if master == None and widget == None:
+		raise ValueError("`master` or `widget` should set at least one!")
+
+	# introduce father and child
 	child.set_back(father)
 	father.set_child_page(child,place=len(father.child_page))
+
+	# define jumping function
+	#def to_child_func():
+	#	father.pack_forget()
+	#	father.child_page[page_number].pack()
+
+	# define jumping function 2.0
 	def to_child_func():
+		if(command!=None):
+			command()
 		father.pack_forget()
 		father.child_page[page_number].pack()
-	to_child = tk.Button(master,text=text,command=to_child_func)
-	father.add_component(to_child)
+
+	# Audo Generate Fliping Button
+	if widget == None:
+		widget = tk.Button(master,text=text,command=to_child_func)
+		if flavor!=None:
+			widget.configure(flavor)
+
+	# load Button
+	elif type(widget) == tk.Button:
+		widget.configure(command=to_child_func)
+		if flavor!=None:
+			widget.configure(flavor)
+
+	elif type(widget) == tk.Entry:
+		widget.configure(command=to_child_func)
+	# ...
+
+	else:
+		raise('Invalid type of widget')
+
+	father.add_component(widget)
+
 
 class Page():
 	"""
