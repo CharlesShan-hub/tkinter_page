@@ -3,47 +3,13 @@
 	Any error is welcome to be pointed out 
 	via 'charles.shht@gmail.com'.
 """
-__version__ = '0.0.4'
+__version__ = '0.0.5'
 
 import tkinter as tk
 import tkinter.ttk as ttk
 
 __all__ = ["DesktopFrame", "Page"]
 
-"""
-#This is a example to build an DesktopFrame. 
-
-import tkinter as tk
-import tkinter_page as tkp
-
-window = tk.Tk()
-
-# Way1: Generate child frame before DesktopFrame by building a dict
-bar_frame = {"background":"gold","width":400,"height":30}
-files_frame = {"background":"red","width":70,"height":200}
-
-# Generate a DesktopFrame
-bframe = tkp.DesktopFrame(window,log=True,bar_frame=bar_frame,files_frame=files_frame)
-
-# Way2: Generate child frame after DesktopFrame by building a dict
-details_frame = {"background":"green","width":260,"height":200}
-bframe.set_details_frame(details_frame)
-bframe.set_attributes_frame({"background":"blue","width":70,"height":200})
-
-# Way3: Generate child frame after DesktopFrame by building a frame
-# If youo use the third way, be careful that you should define the master.
-# --------------------------------------------------------------
-# |  master     |    child frame                               |
-# | base_frame  | bar_frame, logs_frame                        |
-# | mid_frame   | files_frame, details_frame, attributes_frame |
-# --------------------------------------------------------------
-logs_frame = tk.Frame(bframe.base_frame,background="black",width=400,height=40)
-bframe.set_logs_frame(logs_frame)
-
-# Pack and Run
-bframe.pack()
-window.mainloop()
-"""
 
 class DesktopFrame():
 	"""
@@ -288,26 +254,88 @@ class SplitViewFrame():
 	——————————————————————————————————————————————————————————————
 	"""
 
+	log = False
+
 	def __init__(self, master=None, cnf={}, **kw):
 		""" Normally software application follows a master-to-detail navigation style.
 		"""
-		pass
+		# Get Setting
+		if "log" in kw:
+			self.set_log(kw['log'])
+
+	def set_log(self,log=False):
+		""" Set Parameter Log 
+		Args:
+			log (bool or int or None, optional): Whether 
+				to console out the running logs 
+		"""
+		if log:
+			self.log = True
+		else:
+			self.log = False
 
 
-class ComponentsList(list):
+class ScrollCanvas():
 	"""
 	"""
-	def __init__(self, master=None, cnf={}, **kw):
-		pass
+	def __init__(self, window,*args, vsb='y',**kwargs):
+		""" 初始化带滚动条的组件
+		参数说明:
+			vsb: 'y',y方向滚动条; 'x',x方向滚动条; 'both',两个方向滚动条
+		"""
+		# 设置与主窗口
+		self.sd = args[0]
+		self.cd = args[1]
+		self.window = window
+		self.vsb = vsb
+		# 创建控件
+		self.canvas = tk.Canvas(self.window, borderwidth=0, background=self.cd['back'])          # 画布
+		self.frame = tk.Frame(self.canvas, background=self.cd['back'])                           # 画布上的框架
+		if self.vsb=='y' or self.vsb=='both':
+			self.vsb1 = tk.Scrollbar(self.window, orient="vertical", command=self.canvas.yview)   # 竖向滚动条
+			self.canvas.configure(yscrollcommand=self.vsb1.set)
+		if self.vsb=='x' or self.vsb=='both':
+			self.vsb2 = tk.Scrollbar(self.window, orient="horizontal", command=self.canvas.xview) # 横向滚动条
+			self.canvas.configure(xscrollcommand=self.vsb2.set)
+		
+	def _onFrameConfigure(self):
+	    '''Reset the scroll region to encompass the inner frame'''
+	    self.canvas.configure(scrollregion=self.canvas.bbox("all"))
 
-	def pack():
-		pass
+	def fill_test(self):
+		""" 测试填充效果 """
+		for row in range(30):
+			items = [['Normal Info','DataBase Info','Remind Info'],\
+				['普通信息','数据库信息','提示信息']]
+			test_label = FunctionalBlock(self.frame,['Info Type','信息类型'],\
+				self.sd,self.cd,items=items[self.sd['language_id']],reduce_=2)
+			test_label.pack()
 
-	def pack_forget():
-		pass
+	def pack(self):
+		""" 安放控件 """ 
+		self.canvas.pack(side="right", fill="both", expand=True)
+		if self.vsb=='x' or self.vsb=='both':
+			self.vsb2.pack(side='top',fill="x")
+		if self.vsb=='y' or self.vsb=='both':
+			self.vsb1.pack(side="right", fill="y")
+		self.canvas.create_window((0,0),window=self.frame, anchor="nw")
+		self.frame.bind("<Configure>", lambda event, canvas=self.canvas: self._onFrameConfigure())
 
-	def destory():
-		pass
+	def pack_forget(self):
+		""" 隐藏控件 """
+		self.canvas.pack_forget()
+		if self.vsb=='x' or self.vsb=='both':
+			self.vsb2.pack_forget()
+		if self.vsb=='y' or self.vsb=='both':
+			self.vsb1.pack_forget()
+
+	def destroy(self):
+		""" 摧毁控件 """
+		self.canvas.destroy()
+		if self.vsb=='x' or self.vsb=='both':
+			self.vsb2.destroy()
+		if self.vsb=='y' or self.vsb=='both':
+			self.vsb1.destroy()
 
 
 class FunctionalBlock():
@@ -390,69 +418,88 @@ class FunctionalBlock():
 	'''
 
 
-"""
-#This is a example to build an Page. 
-#Using Combobox to flip.
+def page_connect(father, child, page_number,text,master=None,widget=None,flavor=None,command=None):
+	""" Connect two pages with Tree type
+	"""
+	# validation
+	if type(flavor) != dict and flavor!=None:
+		print(flavor)
 
-import tkinter as tk
-import tkinter_page as tkp
+		raise ValueError("`flavor` should be 'dict'")
+	if master == None and widget == None:
+		raise ValueError("`master` or `widget` should set at least one!")
 
-window = tk.Tk()
+	# introduce father and child
+	child.set_back(father)
+	father.set_child_page(child,place=len(father.child_page))
 
-base_frame = tk.Frame(window)
+	# define jumping function
+	#def to_child_func():
+	#	father.pack_forget()
+	#	father.child_page[page_number].pack()
 
-# First we creat three child pages
-# We can creat a pack way for a page
-def pack_way1():
-	print("Use function to define pack way.")
-	label1.pack(fill='x',side='bottom')
-child1 = tkp.Page(base_frame,pack_way=pack_way1)
-label1 = tk.Label(base_frame,text="child1",width=10,height=2)
-child1.add_component(label1)
+	# define jumping function 2.0
+	def to_child_func():
+		if(command!=None):
+			command()
+		father.pack_forget()
+		father.child_page[page_number].pack()
 
-def pack_way2():
-	print("Auto pack way is like this.")
-	label2.pack()
-child2 = tkp.Page(base_frame,pack_way=pack_way2)
-label2 = tk.Label(base_frame,text="child2",width=10,height=2)
-child2.add_component(label2)
+	# Audo Generate Fliping Button
+	if widget == None:
+		widget = tk.Button(master,text=text,command=to_child_func)
+		if flavor!=None:
+			widget.configure(flavor)
 
-# We can also use auto pack way(do not need a pack way func)
-child3 = tkp.Page(base_frame)
-label3 = tk.Label(base_frame,text="child3",width=10,height=2)
-child3.add_component(label3)
+	# load Button
+	elif type(widget) == tk.Button:
+		widget.configure(command=to_child_func)
+		if flavor!=None:
+			widget.configure(flavor)
 
-# make child page list
-child_page = [child1,child3]
-child_page_name = ['page1','page3']
+	elif type(widget) == tk.Entry:
+		widget.configure(command=to_child_func)
+	# ...
 
-# construct father page - load child page at init
-page1 = tkp.Page(base_frame,show_child=True,\
-	flip="Combobox",child_page=child_page,\
-	child_page_name=child_page_name,current=0,\
-	log=False)
-# construct father page - add child page at certain place
-page1.set_child_page(child2,name='page2',mode='ADD',place=1)
+	else:
+		raise('Invalid type of widget')
 
-# Pack Father Page
-# you can also use
-# page1.pack(show_child=True)
-# to auto show the current child page
-base_frame.pack(fill='both',expand=1)
-page1.pack()
-
-window.mainloop()
-"""
+	father.add_component(widget)
 
 
 class Page():
 	"""
 	Pages like book
+
+	If use "combobox" type, the structure is like this:
+	main - branch 1 - branch 1.1 - ...
+	    |           |-branch 1.2
+	    |           |-...
+	    |           |-branch 1.x
+	    |
+	    |- branch 2 - branch 2.1
+	    |           |-branch 2.2
+	    |...        |-...
+	    |           |-branch 2.y
+	    |
+	    |- branch n -...
+	Each end point of the tree has the certain functional
+	components that added by you. Be careful that, for example
+	if you pack branch 1.1, you also pack branch 1 and main at
+	the same time.
+	(See the example 1 for Combobox Flipway Page)
+
+	If use "Tree" type, the structure is not change, but this 
+	more like flip book operation - you would not see the last page
+	when you flip the next page.
+
+	Of cause, if flip == None, the page does not has a child page.
 	"""
 
 	log = False
 	flip = None
 	back = None
+	front = None
 	current = -1
 	show_child = False
 	pack_way = None
@@ -542,11 +589,15 @@ class Page():
 
 		elif flip == 'Tree' or (flip == None and self.flip=='Tree'):
 			self.flip = 'Tree'
+			if init == True:
+				self.flip_button = tk.Button(self.master,text='Back',command=self.back_func)
+				self.flip_title = tk.Label(self.master)
 
 		else:
 			raise ValueError("`flip` should be 'Combobox' or 'Tree'")
 
-	def set_child_page(self,child_page,name=None,mode='ADD',place=0,refresh=True):
+	def set_child_page(self,child_page,name=None,mode='ADD',
+		place=0,refresh=True):
 		""" Set child pages 
 
 		You can whether input a page list or
@@ -599,7 +650,8 @@ class Page():
 		else:
 			raise ValueError("`mode` should be 'ADD' or 'RESET'")
 
-	def set_child_page_name(self,child_page_name=None,auto=False,mode="ADD",place=0,refresh=True):
+	def set_child_page_name(self,child_page_name=None,auto=False,
+		mode="ADD",place=0,refresh=True):
 		""" Set child pages names
 
 		You can whether input a str list or
@@ -681,12 +733,21 @@ class Page():
 		if refresh:
 			self.set_flip()
 
-	def set_back(self,back_page):
+	def set_back(self,back):
 		""" Set back to page"""
-		if type(back_page) != Page:
+		if type(back) != Page:
 			raise ValueError("`back` should be Page")
 
-		self.back_page = back_page
+		self.back = back
+
+	def back_func(self):
+		""" Back function
+		"""
+		# clear child page
+		#self.destroy()
+		self.pack_forget()
+		# pack father page
+		self.back.pack()
 
 	def set_current(self,current):
 		""" Set Current"""
@@ -743,14 +804,21 @@ class Page():
 			self.pack_way()
 		# pack components
 		else:
-			if auto == True:
-				self.pack_combobox()
-			for item in self.page_member:
-				item.pack()
-
-		# pack child page
-		if (show_child or self.show_child) and self.current!=-1:
-			self.child_page[self.current].pack()
+			if self.flip == 'Combobox':
+				for item in self.page_member:
+					item.pack()
+				if auto == True:
+					self.pack_combobox()
+				# pack child page - only combobox
+				if (show_child or self.show_child) and self.current!=-1:
+					self.child_page[self.current].pack()
+			elif self.flip == 'Tree':
+				if auto == True:
+					self.pack_tree()
+				for item in self.page_member:
+					item.pack()
+			else:
+				raise ValueError("Unverified flipway")
 
 	def add_component(self,item):
 		""" Add Component
@@ -761,17 +829,27 @@ class Page():
 		if self.flip == "Combobox":
 			self.flip_combobox.pack()
 
+	def pack_tree(self):
+		if self.flip == 'Tree' and self.back!=None:
+			self.flip_button.pack()
+
 	def pack_forget(self):
 		for item in self.child_page:
 			item.pack_forget()
 		for item in self.page_member:
 			item.pack_forget()
+		if self.flip == 'Tree':
+			self.flip_button.pack_forget()
+			self.flip_title.pack_forget()
 
-	def destory(self):
+	def destroy(self):
 		for item in self.child_page:
-			item.destory()
+			item.destroy()
 		for item in self.page_member:
-			item.destory()
+			item.destroy()
+		if self.flip == 'Tree':
+			self.flip_button.destroy()
+			self.flip_title.destroy()
 		self.child_page.clear()
 		self.page_member.clear()
 
